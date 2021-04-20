@@ -7,6 +7,8 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
      */
     public function __construct()
     {
+        // echo get_post_meta(20, '_payment_method', true);
+        // die;
         global $wpdb;
         $this->id = 'sevi'; // payment gateway plugin ID
         $this->icon = ''; // URL of the icon that will be displayed on checkout page near your gateway name
@@ -18,11 +20,10 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
             'products'
         );
 
-        $keys = $wpdb->get_results("SELECT * from ".$wpdb->prefix . "woocommerce_api_keys WHERE description = 'Sevi API User' ");
+        $keys = $wpdb->get_results("SELECT * from " . $wpdb->prefix . "woocommerce_api_keys WHERE description = 'Sevi API User' ");
 
         //If Sevi Woocommerce API key not exist then create a new one
-        if(count($keys) < 1 )
-        {
+        if (count($keys) < 1) {
             //If Sevi Woocommerce API key not found then create a new key
             $description = "Sevi API User";
             $permissions = 'read_write';
@@ -60,15 +61,15 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
             );
         }
 
-        $results = $wpdb->get_results("select option_name, option_value from ".$wpdb->prefix . "options where option_name = 'sevi_wc_secret' or option_name = 'sevi_wc_key'");
-        $key=[];
-        foreach($results as $r)
+        $results = $wpdb->get_results("select option_name, option_value from " . $wpdb->prefix . "options where option_name = 'sevi_wc_secret' or option_name = 'sevi_wc_key'");
+        $key = [];
+        foreach ($results as $r)
             $key[$r->option_name] = $r->option_value;
 
         // Load the settings.
         $this->init_settings();
         $this->title = $this->get_option('title');
-        $this->description = $this->get_option( 'description' );
+        $this->description = $this->get_option('description');
         $this->enabled = $this->get_option('enabled');
         $this->testmode = 'yes' === $this->get_option('testmode');
         $this->sevi_token = $this->get_option('sevi_token');
@@ -85,46 +86,63 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
         //add_action('wp_enqueue_scripts', array($this, 'payment_scripts'));
 
         //add_action( 'woocommerce_api_{webhook name}', array( $this, 'webhook' ) );
+        add_action('woocommerce_thankyou', array($this, 'woocommerce_thankyou_change_order_status'));
     }
 
     /**
      * Plugin options
      */
+
+    public function woocommerce_thankyou_change_order_status($order_id)
+    {
+        if (!$order_id) return;
+
+        $order = wc_get_order($order_id);
+        $pmt = get_post_meta($order_id, '_payment_method', true);
+        if ($pmt == 'sevi') {
+            if ($order->get_status() == 'processing')
+                $order->update_status('pending');
+        }
+        $redirect_url = 'https://app.sevi.io/checkout/payment/?order_id=' . $order_id;
+        wp_redirect($redirect_url);
+
+        exit;
+    }
     public function init_form_fields()
     {
         $this->form_fields = apply_filters('woocommerce_sevi_fields', array(
-                'enabled' => array(
-                    'title'       => 'Enable/Disable',
-                    'label'       => 'Enable Sevi Gateway',
-                    'type'        => 'checkbox',
-                    'description' => '',
-                    'default'     => 'no'
-                ),
-                'title' => array(
-                    'title'       => 'Title',
-                    'type'        => 'text',
-                    'description' => 'This controls the title which the user sees during checkout.',
-                    'default'     => 'Sevi',
-                    'desc_tip'    => true,
-                ),
-                'description' => array(
-                    'title'       => 'Description',
-                    'type'        => 'textarea',
-                    'description' => 'This controls the description which the user sees during checkout.',
-                    'default'     => 'Buy now, Pay later',
-                ),
-                'testmode' => array(
-                    'title'       => 'Test mode',
-                    'label'       => 'Enable Test Mode',
-                    'type'        => 'checkbox',
-                    'description' => 'Place the payment gateway in test mode',
-                    'default'     => 'yes',
-                    'desc_tip'    => true,
-                ),
-                'sevi_token' => array(
-                    'title'       => 'Sevi Token',
-                    'type'        => 'text'
-                )
+            'enabled' => array(
+                'title'       => 'Enable/Disable',
+                'label'       => 'Enable Sevi Gateway',
+                'type'        => 'checkbox',
+                'description' => '',
+                'default'     => 'no'
+            ),
+            'title' => array(
+                'title'       => 'Title',
+                'type'        => 'text',
+                'description' => 'This controls the title which the user sees during checkout.',
+                'default'     => 'Sevi',
+                'desc_tip'    => true,
+            ),
+            'description' => array(
+                'title'       => 'Description',
+                'type'        => 'textarea',
+                'description' => 'This controls the description which the user sees during checkout.',
+                'default'     => 'Buy now, Pay later',
+            ),
+            'testmode' => array(
+                'title'       => 'Test mode',
+                'label'       => 'Enable Test Mode',
+                'type'        => 'checkbox',
+                'description' => 'Place the payment gateway in test mode',
+                'default'     => 'yes',
+                'desc_tip'    => true,
+            ),
+            'sevi_token' => array(
+                'title'       => 'Sevi Token',
+                'type'        => 'text'
+            )
         ));
     }
 
@@ -137,21 +155,21 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
 
         global $wpdb;
 
-        $wpdb->update($wpdb->prefix . "options",array('option_value'=>$this->woocommerce_api_key) , array( 'option_name' => 'sevi_wc_key'));
-        $wpdb->update($wpdb->prefix . "options",array('option_value'=>$this->woocommerce_api_secret) , array( 'option_name' => 'sevi_wc_secret'));
+        $wpdb->update($wpdb->prefix . "options", array('option_value' => $this->woocommerce_api_key), array('option_name' => 'sevi_wc_key'));
+        $wpdb->update($wpdb->prefix . "options", array('option_value' => $this->woocommerce_api_secret), array('option_name' => 'sevi_wc_secret'));
 
-        add_option('sevi_wc_key',$this->woocommerce_api_key,'');
-        add_option('sevi_wc_secret',$this->woocommerce_api_secret,'');
+        add_option('sevi_wc_key', $this->woocommerce_api_key, '');
+        add_option('sevi_wc_secret', $this->woocommerce_api_secret, '');
         //Call Sevi API here.
 
         $data = [
-                    'active' => $this->enabled=='yes'?true:false,
-                    'jwtToken' => $this->sevi_token,
-                    'url' => get_site_url(),
-                    'consumerKey' => $this->woocommerce_api_key,
-                    'consumerSecret' => $this->woocommerce_api_secret
-                ];
-       $this->curl_call('https://honest-duck-3.loca.lt/ecommerce/woocommerce/connect', $data);
+            'active' => $this->enabled == 'yes' ? true : false,
+            'jwtToken' => $this->sevi_token,
+            'url' => get_site_url(),
+            'consumerKey' => $this->woocommerce_api_key,
+            'consumerSecret' => $this->woocommerce_api_secret
+        ];
+        $this->curl_call('https://curvy-pig-7.loca.lt/ecommerce/woocommerce/connect', $data);
     }
 
     public function payment_fields()
@@ -165,39 +183,40 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
     /**
      * Get_icon function.
      */
-    public function get_icon() {
+    public function get_icon()
+    {
         $icons = array(
-                    'visa'       => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/visa.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Visa" />',
-                    'amex'       => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/amex.svg" style="max-width:40px;padding-left:3px" class="icon" alt="American Express" />',
-                    'mastercard' => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/mastercard.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Mastercard" />',
-                    'discover'   => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/discover.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Discover" />',
-                    'diners'     => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/diners.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Diners" />',
-                    'jcb'        => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/jcb.svg" style="max-width:40px;padding-left:3px" class="icon" alt="JCB" />',
-                    'alipay'     => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/alipay.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Alipay" />',
-                    'wechat'     => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/wechat.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Wechat Pay" />',
-                    'bancontact' => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/bancontact.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Bancontact" />',
-                    'ideal'      => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/ideal.svg" style="max-width:40px;padding-left:3px" class="icon" alt="iDeal" />',
-                    'p24'        => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/p24.svg" style="max-width:40px;padding-left:3px" class="icon" alt="P24" />',
-                    'giropay'    => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/giropay.svg" style="max-width:40px;padding-left:3px" class="icon stripe-icon" alt="Giropay" />',
-                    'eps'        => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/eps.svg" style="max-width:40px;padding-left:3px" class="icon" alt="EPS" />',
-                    'multibanco' => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/multibanco.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Multibanco" />',
-                    'sofort'     => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/sofort.svg" style="max-width:40px;padding-left:3px" class="icon" alt="SOFORT" />',
-                    'sepa'       => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/sepa.svg" style="max-width:40px;padding-left:3px" class="icon" alt="SEPA" />',
-                );
+            'visa'       => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/visa.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Visa" />',
+            'amex'       => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/amex.svg" style="max-width:40px;padding-left:3px" class="icon" alt="American Express" />',
+            'mastercard' => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/mastercard.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Mastercard" />',
+            'discover'   => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/discover.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Discover" />',
+            'diners'     => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/diners.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Diners" />',
+            'jcb'        => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/jcb.svg" style="max-width:40px;padding-left:3px" class="icon" alt="JCB" />',
+            'alipay'     => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/alipay.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Alipay" />',
+            'wechat'     => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/wechat.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Wechat Pay" />',
+            'bancontact' => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/bancontact.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Bancontact" />',
+            'ideal'      => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/ideal.svg" style="max-width:40px;padding-left:3px" class="icon" alt="iDeal" />',
+            'p24'        => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/p24.svg" style="max-width:40px;padding-left:3px" class="icon" alt="P24" />',
+            'giropay'    => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/giropay.svg" style="max-width:40px;padding-left:3px" class="icon stripe-icon" alt="Giropay" />',
+            'eps'        => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/eps.svg" style="max-width:40px;padding-left:3px" class="icon" alt="EPS" />',
+            'multibanco' => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/multibanco.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Multibanco" />',
+            'sofort'     => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/sofort.svg" style="max-width:40px;padding-left:3px" class="icon" alt="SOFORT" />',
+            'sepa'       => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/sepa.svg" style="max-width:40px;padding-left:3px" class="icon" alt="SEPA" />',
+        );
 
         $icons_str = '';
 
-        $icons_str .= isset( $icons['visa'] ) ? $icons['visa'] : '';
-        $icons_str .= isset( $icons['amex'] ) ? $icons['amex'] : '';
-        $icons_str .= isset( $icons['mastercard'] ) ? $icons['mastercard'] : '';
+        $icons_str .= isset($icons['visa']) ? $icons['visa'] : '';
+        $icons_str .= isset($icons['amex']) ? $icons['amex'] : '';
+        $icons_str .= isset($icons['mastercard']) ? $icons['mastercard'] : '';
 
-        if ( 'USD' === get_woocommerce_currency() ) {
-            $icons_str .= isset( $icons['discover'] ) ? $icons['discover'] : '';
-            $icons_str .= isset( $icons['jcb'] ) ? $icons['jcb'] : '';
-            $icons_str .= isset( $icons['diners'] ) ? $icons['diners'] : '';
+        if ('USD' === get_woocommerce_currency()) {
+            $icons_str .= isset($icons['discover']) ? $icons['discover'] : '';
+            $icons_str .= isset($icons['jcb']) ? $icons['jcb'] : '';
+            $icons_str .= isset($icons['diners']) ? $icons['diners'] : '';
         }
 
-        return apply_filters( 'woocommerce_gateway_icon', $icons_str, $this->id );
+        return apply_filters('woocommerce_gateway_icon', $icons_str, $this->id);
     }
 
     /*
@@ -206,17 +225,17 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
     public function payment_scripts()
     {
         // we need to load our css only on checkout page
-        if ( ! is_cart() && ! is_checkout() && ! isset( $_GET['pay_for_order'] ) ) {
+        if (!is_cart() && !is_checkout() && !isset($_GET['pay_for_order'])) {
             return;
         }
 
         // if our payment gateway is disabled, we do not have to enqueue css too
-        if ( 'no' === $this->enabled ) {
+        if ('no' === $this->enabled) {
             return;
         }
 
-        wp_register_style( 'sevi_styles', plugins_url( 'assets/css/style.css', WC_SEVI_MAIN_FILE ), array(), '1.0' );
-        wp_enqueue_style( 'sevi_styles' );
+        wp_register_style('sevi_styles', plugins_url('assets/css/style.css', WC_SEVI_MAIN_FILE), array(), '1.0');
+        wp_enqueue_style('sevi_styles');
     }
 
     /*
@@ -235,7 +254,7 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
         global $woocommerce;
 
         // we need it to get any order detailes
-        $order = wc_get_order( $order_id );
+        $order = wc_get_order($order_id);
         $order->payment_complete();
         $order->reduce_order_stock();
 
@@ -245,7 +264,7 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
         // Redirect to the thank you page
         return array(
             'result' => 'success',
-            'redirect' => $this->get_return_url( $order )
+            'redirect' => $this->get_return_url($order)
         );
     }
 
@@ -254,19 +273,19 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
      */
     public function webhook()
     {
-        $order = wc_get_order( $_GET['id'] );
+        $order = wc_get_order($_GET['id']);
         $order->payment_complete();
         $order->reduce_order_stock();
 
         update_option('webhook_debug', $_GET);
     }
 
-    private function curl_call($url='',$args = [])
+    private function curl_call($url = '', $args = [])
     {
 
         $ch = curl_init();
 
-        curl_setopt($ch, CURLOPT_URL,$url);
+        curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($args));
         curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type:application/json'));
@@ -276,11 +295,8 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
 
         $server_output = curl_exec($ch);
 
-        curl_close ($ch);
+        curl_close($ch);
 
         return $server_output;
-
     }
-
-
 }
