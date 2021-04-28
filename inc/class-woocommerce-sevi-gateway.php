@@ -69,6 +69,7 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
         // Load the settings.
         $this->init_settings();
         $this->title = $this->get_option('title');
+        $this->thankyou_url = $this->get_option('thankyou_url');
         $this->description = $this->get_option('description');
         $this->enabled = $this->get_option('enabled');
         $this->testmode = 'yes' === $this->get_option('testmode');
@@ -103,7 +104,7 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
             if ($order->get_status() == 'processing')
                 $order->update_status('pending');
         }
-        $redirect_url = 'https://app.sevi.io/checkout/payment/?order_id=' . $order_id;
+        $redirect_url = 'https://app.sevi.io/checkout/payment/?order_id=' . $order_id . '&thanks_url=' . $this->thankyou_url;
         wp_redirect($redirect_url);
 
         exit;
@@ -123,6 +124,13 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
                 'type'        => 'text',
                 'description' => 'This controls the title which the user sees during checkout.',
                 'default'     => 'Sevi',
+                'desc_tip'    => true,
+            ),
+            'thankyou_url' => array(
+                'title'       => 'Thankyou Page URL',
+                'type'        => 'text',
+                'description' => 'This will be the URL on which page will redirect after successfull payment..',
+                'default'     => site_url('thankyou'),
                 'desc_tip'    => true,
             ),
             'description' => array(
@@ -163,8 +171,8 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
         //Call Sevi API here.
 
         $data = [
-            'active' => $this->enabled == 'yes' ? true : false,
-            'jwtToken' => $this->sevi_token,
+            'active' => $this->get_option('enabled') == 'yes' ? true : false,
+            'jwtToken' => $this->get_option('sevi_token'),
             'url' => get_site_url(),
             'consumerKey' => $this->woocommerce_api_key,
             'consumerSecret' => $this->woocommerce_api_secret
