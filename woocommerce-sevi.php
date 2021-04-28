@@ -6,8 +6,8 @@
  * Plugin Name: WooCommerce Sevi Gateway
  * Plugin URI: https://sevi.io
  * Description: This is a WooCommerce plugin for Sevi Payment Gateway.
- * Version: 1.0.0
- * Author: Waqar M. Irfan
+ * Version: 0.0.3
+ * Author: Sevi
  * License: GPLv3 or later
  * Text Domain: woocommerce-sevi
  */

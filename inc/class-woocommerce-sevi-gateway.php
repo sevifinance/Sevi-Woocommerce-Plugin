@@ -194,6 +194,7 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
     public function get_icon()
     {
         $icons = array(
+            'sevi'       => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/sevi.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Sevi" />',
             'visa'       => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/visa.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Visa" />',
             'amex'       => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/amex.svg" style="max-width:40px;padding-left:3px" class="icon" alt="American Express" />',
             'mastercard' => '<img src="' . WC_SEVI_PLUGIN_URL . '/assets/images/mastercard.svg" style="max-width:40px;padding-left:3px" class="icon" alt="Mastercard" />',
@@ -214,15 +215,16 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
 
         $icons_str = '';
 
-        $icons_str .= isset($icons['visa']) ? $icons['visa'] : '';
-        $icons_str .= isset($icons['amex']) ? $icons['amex'] : '';
-        $icons_str .= isset($icons['mastercard']) ? $icons['mastercard'] : '';
+        // $icons_str .= isset($icons['visa']) ? $icons['visa'] : '';
+        $icons_str .= isset($icons['sevi']) ? $icons['sevi'] : '';
+        // $icons_str .= isset($icons['amex']) ? $icons['amex'] : '';
+        // $icons_str .= isset($icons['mastercard']) ? $icons['mastercard'] : '';
 
-        if ('USD' === get_woocommerce_currency()) {
-            $icons_str .= isset($icons['discover']) ? $icons['discover'] : '';
-            $icons_str .= isset($icons['jcb']) ? $icons['jcb'] : '';
-            $icons_str .= isset($icons['diners']) ? $icons['diners'] : '';
-        }
+        // if ('USD' === get_woocommerce_currency()) {
+        //     $icons_str .= isset($icons['discover']) ? $icons['discover'] : '';
+        //     $icons_str .= isset($icons['jcb']) ? $icons['jcb'] : '';
+        //     $icons_str .= isset($icons['diners']) ? $icons['diners'] : '';
+        // }
 
         return apply_filters('woocommerce_gateway_icon', $icons_str, $this->id);
     }
