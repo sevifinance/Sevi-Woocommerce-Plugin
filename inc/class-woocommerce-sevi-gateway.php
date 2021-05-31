@@ -177,7 +177,7 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
             'consumerKey' => $this->woocommerce_api_key,
             'consumerSecret' => $this->woocommerce_api_secret
         ];
-        $this->curl_call('https://curvy-pig-7.loca.lt/ecommerce/woocommerce/connect', $data);
+        $this->curl_call('https://exodus.sevi.io/ecommerce/woocommerce/connect', $data);
     }
 
     public function payment_fields()
