@@ -35,8 +35,8 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
             $this->woocommerce_api_key = $consumer_key;
             $this->woocommerce_api_secret = $consumer_secret;
 
-            add_option('sevi_wc_key', $consumer_key, '', 'no');
-            add_option('sevi_wc_secret', $consumer_secret, '', 'no');
+            update_option('sevi_wc_key', $consumer_key);
+            update_option('sevi_wc_secret', $consumer_secret);
 
             $data = array(
                 'user_id' => $user_id,
@@ -177,8 +177,11 @@ class WooCommerceSeviGateway extends WC_Payment_Gateway
             'consumerKey' => $this->woocommerce_api_key,
             'consumerSecret' => $this->woocommerce_api_secret
         ];
+        
         $this->curl_call('https://exodus.sevi.io/ecommerce/woocommerce/connect', $data);
     }
+
+
 
     public function payment_fields()
     {
